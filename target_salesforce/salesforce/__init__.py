@@ -1,6 +1,5 @@
 import re
 import threading
-import time
 import backoff
 import requests
 from requests.exceptions import RequestException
@@ -8,9 +7,9 @@ import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
 
-from tap_salesforce.salesforce.bulk import Bulk
-from tap_salesforce.salesforce.rest import Rest
-from tap_salesforce.salesforce.exceptions import (
+from target_salesforce.salesforce.bulk import Bulk
+from target_salesforce.salesforce.rest import Rest
+from target_salesforce.salesforce.exceptions import (
     TapSalesforceException,
     TapSalesforceQuotaExceededException)
 
@@ -273,10 +272,10 @@ class Salesforce():
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None):
         if http_method == "GET":
-            LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
+            LOGGER.debug("Making %s request to %s with params: %s", http_method, url, params)
             resp = self.session.get(url, headers=headers, stream=stream, params=params)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
+            LOGGER.debug("Making %s request to %s with body %s", http_method, url, body)
             resp = self.session.post(url, headers=headers, data=body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
@@ -355,6 +354,20 @@ class Salesforce():
         with metrics.http_request_timer("describe") as timer:
             timer.tags['endpoint'] = endpoint_tag
             resp = self._make_request('GET', url, headers=headers)
+
+        return resp.json()
+
+
+    def create_record(self, sobject, payload):
+        headers = self._get_standard_headers()
+        headers["Content-Type"] =  "application/json"
+        endpoint = "sobjects/{}/".format(sobject)
+        endpoint_tag = "sobjects"
+        url = self.data_url.format(self.instance_url, endpoint)
+
+        with metrics.http_request_timer("describe") as timer:
+            timer.tags['endpoint'] = endpoint_tag
+            resp = self._make_request('POST', url, headers=headers, body=payload)
 
         return resp.json()
 

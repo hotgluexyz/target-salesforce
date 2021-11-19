@@ -4,7 +4,7 @@ import os
 
 import singer
 import singer.utils as singer_utils
-from tap_salesforce.salesforce import Salesforce
+from target_salesforce.salesforce import Salesforce
 
 LOGGER = singer.get_logger()
 
