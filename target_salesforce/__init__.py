@@ -18,10 +18,10 @@ REQUIRED_CONFIG_KEYS = [
     "select_fields_by_default",
 ]
 
-VALID_SOBJECTS = [
-    "Tasks",
-    "Contacts"
-]
+VALID_SOBJECTS = {
+    "Task": "tasks.json",
+    "Contact": "contacts.json"
+}
 
 CONFIG = {
     "refresh_token": None,
@@ -89,11 +89,11 @@ def main():
 
     sf = sf_connect(CONFIG)
 
-    payloads_files = glob(f"{CONFIG.get('input_path')}/*.json")
-    for sobject in VALID_SOBJECTS:
+    payloads_files = glob(f"{CONFIG.get('input_path', '.')}/*.json")
+    for sobject in VALID_SOBJECTS.keys():
         for payload in payloads_files:
-            payload_name = payload.split('/')[-1][:-5]
-            if payload_name.lower()==sobject.lower():
+            payload_name = payload.split('/')[-1]
+            if payload_name.lower()==VALID_SOBJECTS[sobject]:
                 upload_target(sf, payload, sobject)
 
 
