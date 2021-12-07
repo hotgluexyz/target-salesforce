@@ -2,7 +2,7 @@
 import singer
 import singer.utils as singer_utils
 from requests.exceptions import HTTPError
-from tap_salesforce.salesforce.exceptions import TapSalesforceException
+from target_salesforce.salesforce.exceptions import TapSalesforceException
 
 LOGGER = singer.get_logger()
 

@@ -11,7 +11,7 @@ from requests.exceptions import RequestException
 
 import xmltodict
 
-from tap_salesforce.salesforce.exceptions import (
+from target_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException)
 
 BATCH_STATUS_POLLING_SLEEP = 20
