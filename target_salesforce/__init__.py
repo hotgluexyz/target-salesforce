@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import json
-import os
+import requests
 
 import singer
 import singer.utils as singer_utils
@@ -17,11 +17,6 @@ REQUIRED_CONFIG_KEYS = [
     "api_type",
     "select_fields_by_default",
 ]
-
-VALID_SOBJECTS = {
-    "Task": "tasks.json",
-    "Contact": "contacts.json"
-}
 
 CONFIG = {
     "refresh_token": None,
@@ -70,11 +65,10 @@ def sf_connect(CONFIG):
 
 
 def upload_target(client, payload_file, sobject):
-    # Upload Tasks
-    if os.path.exists(payload_file):
-        fname = payload_file.split('/')[-1]
-        LOGGER.info(f"Found {fname}, processing...")
-        payload = load_json(payload_file)
+    # Upload Payloads
+    fname = payload_file.split('/')[-1]
+    LOGGER.info(f"Found {fname}, processing...")
+    payload = load_json(payload_file)
 
     LOGGER.info(f"Uploading {len(payload)} task(s) to SalesForce")
     for item in payload:
@@ -90,12 +84,20 @@ def main():
     sf = sf_connect(CONFIG)
 
     payloads_files = glob(f"{CONFIG.get('input_path', '.')}/*.json")
-    for sobject in VALID_SOBJECTS.keys():
-        for payload in payloads_files:
-            payload_name = payload.split('/')[-1]
-            if payload_name.lower()==VALID_SOBJECTS[sobject]:
-                upload_target(sf, payload, sobject)
+    payloads_files = [f for f in payloads_files if "config.json" not in f]
 
+    for payload in payloads_files:
+        try:
+            payload_name = payload.split('/')[-1][:-5]
+            sobject = sf.describe(payload_name)
+            upload_target(sf, payload, sobject["name"])
+        except requests.exceptions.HTTPError as e:
+            if '404' in str(e)[:3]:
+                LOGGER.warning(f"{payload} do not have a valid Salesforce Sobject name.")
+            elif '400' in str(e)[:3]:
+                LOGGER.warning(f"{payload} invalid payload.")
+            else:
+                raise e
 
 if __name__ == "__main__":
     main()
