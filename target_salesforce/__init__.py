@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import json
-import os
+import requests
 
 import singer
 import singer.utils as singer_utils
 from target_salesforce.salesforce import Salesforce
+from glob import glob
 
 LOGGER = singer.get_logger()
 
@@ -63,24 +64,40 @@ def sf_connect(CONFIG):
     return sf
 
 
+def upload_target(client, payload_file, sobject):
+    # Upload Payloads
+    fname = payload_file.split('/')[-1]
+    LOGGER.info(f"Found {fname}, processing...")
+    payload = load_json(payload_file)
+
+    LOGGER.info(f"Uploading {len(payload)} task(s) to SalesForce")
+    for item in payload:
+        payload_str = json.dumps(item)
+        LOGGER.debug(f"PAYLOAD: {payload_str}")
+        client.create_record(sobject, payload_str)
+
+
 def main():
     args = singer_utils.parse_args(REQUIRED_CONFIG_KEYS)
     CONFIG.update(args.config)
 
     sf = sf_connect(CONFIG)
 
-    # Upload Tasks
-    input_path = f"{CONFIG.get('input_path')}/tasks.json"
-    if os.path.exists(input_path):
-        LOGGER.info("Found tasks.json, processing...")
-        payload = load_json(input_path)
+    payloads_files = glob(f"{CONFIG.get('input_path', '.')}/*.json")
+    payloads_files = [f for f in payloads_files if "config.json" not in f]
 
-    LOGGER.info(f"Uploading {len(payload)} task(s) to SalesForce")
-    for item in payload:
-        payload_str = json.dumps(item)
-        LOGGER.debug(f"PAYLOAD: {payload_str}")
-        sf.create_record("Task", payload_str)
-
+    for payload in payloads_files:
+        try:
+            payload_name = payload.split('/')[-1][:-5]
+            sobject = sf.describe(payload_name)
+            upload_target(sf, payload, sobject["name"])
+        except requests.exceptions.HTTPError as e:
+            if '404' in str(e)[:3]:
+                LOGGER.warning(f"{payload} do not have a valid Salesforce Sobject name.")
+            elif '400' in str(e)[:3]:
+                LOGGER.warning(f"{payload} invalid payload.")
+            else:
+                raise e
 
 if __name__ == "__main__":
     main()
