@@ -357,7 +357,6 @@ class Salesforce():
 
         return resp.json()
 
-
     def create_record(self, sobject, payload):
         headers = self._get_standard_headers()
         headers["Content-Type"] =  "application/json"
@@ -370,7 +369,19 @@ class Salesforce():
             resp = self._make_request('POST', url, headers=headers, body=payload)
 
         return resp.json()
+    
+    def update_record(self, endpoint, payload):
+        headers = self._get_standard_headers()
+        headers["Content-Type"] =  "application/json"
+        endpoint = "".join([endpoint, "?_HttpMethod=PATCH"])
+        endpoint_tag = "sobjects"
+        url = self.data_url.format(self.instance_url, endpoint)
 
+        with metrics.http_request_timer("describe") as timer:
+            timer.tags['endpoint'] = endpoint_tag
+            resp = self._make_request('POST', url, headers=headers, body=payload)
+
+        return resp
 
     # pylint: disable=no-self-use
     def _get_selected_properties(self, catalog_entry):
