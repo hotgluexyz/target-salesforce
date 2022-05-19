@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='target-salesforce',
-    version='1.0.3',
+    version='1.0.4',
     description='hotglue target for exporting data to Salesforce API',
     author='hotglue',
     url='https://hotglue.xyz',

@@ -1,17 +1,17 @@
 import re
 import threading
+
 import backoff
 import requests
-from requests.exceptions import RequestException
 import singer
 import singer.utils as singer_utils
+from requests.exceptions import RequestException
 from singer import metadata, metrics
 
 from target_salesforce.salesforce.bulk import Bulk
-from target_salesforce.salesforce.rest import Rest
 from target_salesforce.salesforce.exceptions import (
-    TapSalesforceException,
-    TapSalesforceQuotaExceededException)
+    TapSalesforceException, TapSalesforceQuotaExceededException)
+from target_salesforce.salesforce.rest import Rest
 
 LOGGER = singer.get_logger()
 
