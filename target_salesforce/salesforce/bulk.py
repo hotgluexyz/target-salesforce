@@ -2,14 +2,14 @@
 import csv
 import json
 import sys
-import time
 import tempfile
-import singer
-from singer import metrics
-import requests
-from requests.exceptions import RequestException
+import time
 
+import requests
+import singer
 import xmltodict
+from requests.exceptions import RequestException
+from singer import metrics
 
 from target_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException)
