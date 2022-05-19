@@ -44,17 +44,6 @@ FORCED_FULL_TABLE = {
     'LoginEvent', # Does not support ordering by CreatedDate
 }
 
-def get_reports_list(sf):
-    if not sf.list_reports:
-        return []
-    headers = sf._get_standard_headers()
-    endpoint = "queryAll"
-    params = {'q': 'SELECT Id,FolderName,Name FROM Report'}
-    url = sf.data_url.format(sf.instance_url, endpoint)
-
-    response = sf._make_request('GET', url, headers=headers, params=params)
-    return response.json().get("records", [])
-
 
 def get_replication_key(sobject_name, fields):
     if sobject_name in FORCED_FULL_TABLE:
@@ -240,47 +229,6 @@ def do_discover(sf):
             continue
 
         entry = generate_schema(fields, sf, sobject_name, replication_key)
-        entries.append(entry)
-
-    reports = get_reports_list(sf)
-
-    for report in reports:
-        mdata = metadata.new()
-        properties = {}
-        fields = ["attributes", "factMap", "groupingsAcross", "groupingsDown", "picklistColors", "reportExtendedMetadata", "reportMetadata", "allData", "hasDetailRows"]
-
-        # Loop over the object's fields
-        for field_name in fields:
-            if field_name in ["allData", "hasDetailRows"]:
-                property_schema = dict(type=["null", "boolean"])
-            else:
-                property_schema = dict(type=["null", "object", "string"])
-            mdata = metadata.write(
-                mdata, ('properties', field_name), 'selected-by-default', True)
-
-            properties[field_name] = property_schema
-
-        mdata = metadata.write(
-            mdata,
-            (),
-            'forced-replication-method',
-            {'replication-method': 'FULL_TABLE'})
-
-        mdata = metadata.write(mdata, (), 'table-key-properties', [])
-
-        schema = {
-            'type': 'object',
-            'additionalProperties': False,
-            'properties': properties
-        }
-
-        entry = {
-            'stream': f"Report_({report['Name']})",
-            'tap_stream_id': f"Report_({report['Name']})",
-            'schema': schema,
-            'metadata': metadata.to_list(mdata)
-        }
-
         entries.append(entry)
 
     # For each custom setting field, remove its associated tag from entries
