@@ -280,11 +280,6 @@ class Salesforce():
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
-        try:
-            resp.raise_for_status()
-        except RequestException as ex:
-            raise ex
-
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1
             self.check_rest_quota_usage(resp.headers)
@@ -368,7 +363,7 @@ class Salesforce():
             timer.tags['endpoint'] = endpoint_tag
             resp = self._make_request('POST', url, headers=headers, body=payload)
 
-        return resp.json()
+        return resp
     
     def update_record(self, endpoint, payload):
         headers = self._get_standard_headers()
