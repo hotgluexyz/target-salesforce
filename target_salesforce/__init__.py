@@ -329,11 +329,23 @@ def upload_target(client, payload_file, sobject):
             if res:
                 payload_str = json.dumps(item)
                 endpoint = "/".join(res['attributes']['url'].split("/")[4:])
-                client.update_record(endpoint, payload_str)
+                res = client.update_record(endpoint, payload_str)
+                if res.status_code==404:
+                    LOGGER.warning(f"{sobject['name']} do not have a valid Salesforce Sobject name.")
+                elif res.status_code==400:
+                    LOGGER.warning(f"{payload} invalid payload: {res.json()[0].get('message')}")
+                elif res.status_code!=200:
+                    LOGGER.warning(f"{payload} invalid payload.")
                 continue
         payload_str = json.dumps(item)
         LOGGER.debug(f"PAYLOAD: {payload_str}")
-        client.create_record(sobject["name"], payload_str)
+        res = client.create_record(sobject["name"], payload_str)
+        if res.status_code==404:
+            LOGGER.warning(f"{sobject['name']} do not have a valid Salesforce Sobject name.")
+        elif res.status_code==400:
+            LOGGER.warning(f"{payload} invalid payload: {res.json()[0].get('message')}")
+        elif res.status_code!=200:
+            LOGGER.warning(f"{payload} invalid payload.")
 
 
 def main():
@@ -350,17 +362,10 @@ def main():
         payloads_files = sort_files(payloads_files, PRIORITY_LIST)
 
         for payload in payloads_files:
-            try:
-                payload_name = payload.split('/')[-1][:-5]
-                sobject = sf.describe(payload_name)
+            payload_name = payload.split('/')[-1][:-5]
+            sobject = sf.describe(payload_name)
+            if isinstance(sobject, dict) and sobject.get("label"):
                 upload_target(sf, payload, sobject)
-            except requests.exceptions.HTTPError as e:
-                if '404' in str(e)[:3]:
-                    LOGGER.warning(f"{payload} do not have a valid Salesforce Sobject name.")
-                elif '400' in str(e)[:3]:
-                    LOGGER.warning(f"{payload} invalid payload.")
-                else:
-                    raise e
 
 if __name__ == "__main__":
     main()
