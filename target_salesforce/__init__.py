@@ -313,12 +313,13 @@ def upload_target(client, payload_file, sobject):
     LOGGER.info(f"Found {fname}, processing...")
     payload = load_json(payload_file)
 
-    external_id = [f["name"] for f in sobject['fields'] if f['externalId']]
-    external_id = external_id[0] if external_id else None
+    external_ids = [f["name"] for f in sobject['fields'] if f['externalId']]
 
     LOGGER.info(f"Uploading {len(payload)} {sobject['name']}(s) to SalesForce")
     for item in payload:
-        if external_id in item.keys():
+        external_id = [i for i in item.keys() if i in external_ids]
+        if external_id:
+            external_id = external_id[0]
             item = generate_ids(client, item)
             rest = Rest(client)
             query = f"SELECT Id, {external_id} FROM {sobject['name']} WHERE {external_id} = '{item.get(external_id)}' AND IsDeleted=false"
@@ -334,7 +335,7 @@ def upload_target(client, payload_file, sobject):
                     LOGGER.warning(f"{sobject['name']} do not have a valid Salesforce Sobject name.")
                 elif res.status_code==400:
                     LOGGER.warning(f"{payload} invalid payload: {res.json()[0].get('message')}")
-                elif res.status_code!=200:
+                elif res.status_code>300:
                     LOGGER.warning(f"{payload} invalid payload.")
                 continue
         payload_str = json.dumps(item)
