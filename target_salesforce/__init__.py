@@ -319,14 +319,17 @@ def upload_target(client, payload_file, sobject):
     for item in payload:
         external_id = [i for i in item.keys() if i in external_ids]
         if external_id:
-            external_id = external_id[0]
-            item = generate_ids(client, item)
+            update_item = item.copy()
+            update_item = generate_ids(client, update_item)
             rest = Rest(client)
-            query = f"SELECT Id, {external_id} FROM {sobject['name']} WHERE {external_id} = '{item.get(external_id)}' AND IsDeleted=false"
-            params = {"q": query}
-            url = "{}/services/data/v41.0/queryAll".format(client.instance_url)
-            headers = client._get_standard_headers()
-            res = next(rest._sync_records(url, headers, params), False)
+            for eid in external_id:
+                query = f"SELECT Id, {eid} FROM {sobject['name']} WHERE {eid} = '{update_item.get(eid)}' AND IsDeleted=false"
+                params = {"q": query}
+                url = "{}/services/data/v41.0/queryAll".format(client.instance_url)
+                headers = client._get_standard_headers()
+                res = next(rest._sync_records(url, headers, params), False)
+                if res:
+                    break
             if res:
                 payload_str = json.dumps(item)
                 endpoint = "/".join(res['attributes']['url'].split("/")[4:])
