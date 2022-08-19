@@ -31,6 +31,7 @@ CONFIG = {
     "client_id": None,
     "client_secret": None,
     "start_date": None,
+    "log_file": "error_log.json"
 }
 
 PRIORITY_LIST = ["Account", "Contact"]
@@ -307,7 +308,7 @@ def generate_ids(client, item):
     return item
 
 
-def upload_target(client, payload_file, sobject):
+def upload_target(client, payload_file, sobject, config):
     # Upload Payloads
     fname = payload_file.split('/')[-1]
     LOGGER.info(f"Found {fname}, processing...")
@@ -337,19 +338,30 @@ def upload_target(client, payload_file, sobject):
                 if res.status_code==404:
                     LOGGER.warning(f"{sobject['name']} do not have a valid Salesforce Sobject name.")
                 elif res.status_code==400:
-                    LOGGER.warning(f"{payload} invalid payload: {res.json()[0].get('message')}")
+                    with open(config["log_file"], "a") as f:
+                        json.dump(payload_str, f)
+                        f.write("\n")
+                    LOGGER.warning(f"Invalid payload: {res.json()[0].get('message')}")
                 elif res.status_code>300:
-                    LOGGER.warning(f"{payload} invalid payload.")
+                    with open(config["log_file"], "a") as f:
+                        json.dump(payload_str, f)
+                        f.write("\n")
+                    LOGGER.warning(f"Invalid payload.")
                 continue
         payload_str = json.dumps(item)
-        LOGGER.debug(f"PAYLOAD: {payload_str}")
         res = client.create_record(sobject["name"], payload_str)
         if res.status_code==404:
             LOGGER.warning(f"{sobject['name']} do not have a valid Salesforce Sobject name.")
         elif res.status_code==400:
-            LOGGER.warning(f"{payload} invalid payload: {res.json()[0].get('message')}")
+            with open(config["log_file"], "a") as f:
+                json.dump(payload_str, f)
+                f.write("\n")
+            LOGGER.warning(f"Invalid payload: {res.json()[0].get('message')}")
         elif res.status_code!=200:
-            LOGGER.warning(f"{payload} invalid payload.")
+            with open(config["log_file"], "a") as f:
+                json.dump(payload_str, f)
+                f.write("\n")
+            LOGGER.warning(f"Invalid payload.")
 
 
 def main():
@@ -369,7 +381,7 @@ def main():
             payload_name = payload.split('/')[-1][:-5]
             sobject = sf.describe(payload_name)
             if isinstance(sobject, dict) and sobject.get("label"):
-                upload_target(sf, payload, sobject)
+                upload_target(sf, payload, sobject, CONFIG)
 
 if __name__ == "__main__":
     main()
