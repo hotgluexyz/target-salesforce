@@ -357,7 +357,7 @@ def upload_target(client, payload_file, sobject, config):
                 json.dump(payload_str, f)
                 f.write("\n")
             LOGGER.warning(f"Invalid payload: {res.json()[0].get('message')}")
-        elif res.status_code!=200:
+        elif res.status_code>=300:
             with open(config["log_file"], "a") as f:
                 json.dump(payload_str, f)
                 f.write("\n")
