@@ -303,8 +303,9 @@ def generate_ids(client, item):
             url = "{}/services/data/v41.0/queryAll".format(client.instance_url)
             headers = client._get_standard_headers()
             rest = Rest(client)
-            res = next(rest._sync_records(url, headers, params))
-            item[k] = res["Id"]
+            res = next((rest._sync_records(url, headers, params)), None)
+            if res:
+                item[k] = res["Id"]
     return item
 
 
