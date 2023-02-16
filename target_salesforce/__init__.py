@@ -348,6 +348,8 @@ def upload_target(client, payload_file, sobject, config):
                         json.dump(payload_str, f)
                         f.write("\n")
                     LOGGER.warning(f"Invalid payload.")
+                if config.get("raise_errors"):
+                    res.raise_for_status()
                 continue
         payload_str = json.dumps(item)
         res = client.create_record(sobject["name"], payload_str)
@@ -363,6 +365,8 @@ def upload_target(client, payload_file, sobject, config):
                 json.dump(payload_str, f)
                 f.write("\n")
             LOGGER.warning(f"Invalid payload.")
+        if config.get("raise_errors"):
+            res.raise_for_status()
 
 
 def main():
