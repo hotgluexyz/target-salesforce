@@ -12,7 +12,11 @@ from requests.exceptions import RequestException
 from singer import metrics
 
 from target_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceQuotaExceededException)
+    TapSalesforceException,
+    TapSalesforceQuotaExceededException,
+    TapSalesforceQuotaRequestException,
+    TapSalesforceQuotaBodyException
+)
 
 BATCH_STATUS_POLLING_SLEEP = 20
 PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP = 60
@@ -71,9 +75,19 @@ class Bulk():
         url = self.sf.data_url.format(self.sf.instance_url, endpoint)
 
         with metrics.http_request_timer(endpoint):
-            resp = self.sf._make_request('GET', url, headers=self.sf._get_standard_headers()).json()
+            resp = self.sf._make_request('GET', url, headers=self.sf._get_standard_headers())
+        
+        if resp.ok:
+            resp = resp.json()
+        else:
+            raise TapSalesforceQuotaRequestException(f"Error requesting bulk quota. status_code={resp.status_code}. response json={resp.json()}")
 
-        quota_max = resp['DailyBulkApiRequests']['Max']
+        quota = resp.get('DailyBulkApiRequests')
+        if not quota:
+            quota = resp.get('DailyBulkApiBatches')
+        if not quota:
+            raise TapSalesforceQuotaBodyException(f"No daily field for quota at response={resp}")
+        quota_max = quota['Max']
         max_requests_for_run = int((self.sf.quota_percent_per_run * quota_max) / 100)
 
         quota_remaining = resp['DailyBulkApiRequests']['Remaining']
